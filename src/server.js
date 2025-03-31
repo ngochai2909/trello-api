@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * Updated by trungquandev.com's author on August 17 2023
  * YouTube: https://youtube.com/@trungquandev
@@ -5,28 +6,48 @@
  */
 
 import express from 'express'
-import { mapOrder } from '~/utils/sorts.js'
+import { CLOSE_DATABASE, CONNECT_DATABASE, GET_DB } from './config/mongodb'
+import exitHook from 'async-exit-hook'
 
-const app = express()
+import { env } from './config/environment'
 
-const hostname = 'localhost'
-const port = 8017
+const START_SERVER = () => {
+  const app = express()
 
-app.get('/', (req, res) => {
-  // Test Absolute import mapOrder
-  console.log(mapOrder(
-    [ { id: 'id-1', name: 'One' },
-      { id: 'id-2', name: 'Two' },
-      { id: 'id-3', name: 'Three' },
-      { id: 'id-4', name: 'Four' },
-      { id: 'id-5', name: 'Five' } ],
-    ['id-5', 'id-4', 'id-2', 'id-3', 'id-1'],
-    'id'
-  ))
-  res.end('<h1>Hello World!</h1><hr>')
-})
+  app.get('/', async (req, res) => {
+    console.log(await GET_DB().listCollections().toArray())
 
-app.listen(port, hostname, () => {
-  // eslint-disable-next-line no-console
-  console.log(`Hello Trung Quan Dev, I am running at ${ hostname }:${ port }/`)
-})
+    res.end('<h1>Hello World!</h1><hr>')
+  })
+
+  app.listen(env.APP_PORT, env.APP_HOST, () => {
+    console.log(
+      `3.Hello Hai Nguyen, I am running at ${env.APP_PORT}:${env.APP_HOST}/`
+    )
+  })
+  exitHook(() => {
+    console.log('disconnecting from database....')
+    CLOSE_DATABASE()
+    console.log('disconnected from database successfully')
+  })
+}
+
+;(async () => {
+  try {
+    console.log('1.Connecting to database....')
+    await CONNECT_DATABASE()
+    console.log('2.Connected to database....')
+    START_SERVER()
+  } catch (error) {
+    console.error(error)
+    process.exit(0)
+  }
+})()
+
+// CONNECT_DATABASE()
+//   .then(() => console.log('Connect to database successfully'))
+//   .then(() => START_SERVER())
+//   .catch((error) => {
+//     console.error(error)
+//     process.exit(0)
+//   })
