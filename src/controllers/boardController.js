@@ -1,15 +1,14 @@
 import { StatusCodes } from 'http-status-codes'
-import Joi from 'joi'
+import ApiError from '~/utils/ApiError'
 
 const createNew = async (req, res, next) => {
   try {
     res.status(StatusCodes.CREATED).json({
       message: 'Post: post from controller Create board successfully'
     })
+    throw new ApiError('Error from controller')
   } catch (error) {
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-      errors: error.message
-    })
+    next(error)
   }
 }
 
