@@ -5,9 +5,7 @@ const createNew = async (req, res, next) => {
   try {
     const createBoard = await boardService.createNew(req.body)
 
-    res.status(StatusCodes.CREATED).json({
-      message: createBoard
-    })
+    res.status(StatusCodes.CREATED).json(createBoard)
   } catch (error) {
     next(error)
   }
