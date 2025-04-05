@@ -35,7 +35,11 @@ const createNew = async (data) => {
 
     const createColumn = await GET_DB()
       .collection(CARD_COLLECTION_NAME)
-      .insertOne(validData)
+      .insertOne({
+        ...validData,
+        boardId: new ObjectId(validData.boardId),
+        columnId: new ObjectId(validData.columnId)
+      })
     return createColumn
   } catch (error) {
     throw new Error(error)
