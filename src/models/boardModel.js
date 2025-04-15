@@ -1,5 +1,5 @@
 import Joi from 'joi'
-import { ObjectId, ReturnDocument } from 'mongodb'
+import { ObjectId } from 'mongodb'
 import { GET_DB } from '~/config/mongodb'
 import { BOARD_TYPE } from '~/utils/constants'
 import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '~/utils/validators'
@@ -85,8 +85,6 @@ const getDetails = async (id) => {
     // const result = await GET_DB()
     //   .collection(BOARD_COLLECTION_NAME)
     //   .findOne({ _id: new ObjectId(id) })
-
-    console.log(result)
 
     return result[0] || null
   } catch (error) {

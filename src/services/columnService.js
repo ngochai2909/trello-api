@@ -1,5 +1,4 @@
 import { StatusCodes } from 'http-status-codes'
-import { cardController } from '~/controllers/cardController'
 import { boardModel } from '~/models/boardModel'
 import { cardModel } from '~/models/cardModel'
 import { columnModel } from '~/models/columnModel'

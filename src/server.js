@@ -27,11 +27,20 @@ const START_SERVER = () => {
   //error handle
   app.use(errorHandlingMiddleware)
 
-  app.listen(env.APP_PORT, env.APP_HOST, () => {
-    console.log(
-      `3.Hello Hai Nguyen, I am running at ${env.APP_PORT}:${env.APP_HOST}/`
-    )
-  })
+  if (env.BUILD_MODE === 'production') {
+    app.listen(process.env.PORT, () => {
+      console.log(
+        `3. production mode: Hello Hai Nguyen, Back end is running at ${process.env.PORT}`
+      )
+    })
+  } else {
+    app.listen(env.APP_PORT, env.APP_HOST, () => {
+      console.log(
+        `3.Hello Hai Nguyen, I am running at ${env.APP_PORT}:${env.APP_HOST}/`
+      )
+    })
+  }
+
   exitHook(() => {
     console.log('disconnecting from database....')
     CLOSE_DATABASE()
