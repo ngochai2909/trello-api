@@ -6,6 +6,8 @@ import { v4 as uuidv4 } from 'uuid'
 import { pickUser } from '~/utils/formatters'
 import { WEBSITE_DOMAIN } from '~/utils/constants'
 import { BrevoProvider } from '~/providers/BrevoProvider'
+import { jwtProvider } from '~/providers/JwtProvider'
+import { env } from '~/config/environment'
 
 const createNew = async (reqBody) => {
   // eslint-disable-next-line no-useless-catch
@@ -45,6 +47,78 @@ const createNew = async (reqBody) => {
   }
 }
 
+const verifyAccount = async (reqBody) => {
+  try {
+    const existUser = await userModel.findOneByEmail(reqBody.email)
+    if (!existUser) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'User not found')
+    }
+
+    if (existUser.isActive) {
+      throw new ApiError(StatusCodes.NOT_ACCEPTABLE, 'User already actived')
+    }
+
+    if (existUser.verifyToken !== reqBody.token) {
+      throw new ApiError(StatusCodes.NOT_ACCEPTABLE, 'Invalid token')
+    }
+
+    await userModel.update(existUser._id, {
+      isVerified: true,
+      verifyToken: null
+    })
+
+    return pickUser(existUser)
+  } catch (error) {
+    console.log(error)
+    throw error
+  }
+}
+
+const login = async (reqBody) => {
+  // eslint-disable-next-line no-useless-catch
+  try {
+    const existUser = await userModel.findOneByEmail(reqBody.email)
+    if (!existUser) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'User not found')
+    }
+    if (!existUser.isActive) {
+      throw new ApiError(StatusCodes.NOT_ACCEPTABLE, 'User not actived')
+    }
+    if (!bcrypt.compareSync(reqBody.password, existUser.password)) {
+      throw new ApiError(
+        StatusCodes.NOT_ACCEPTABLE,
+        'Your email or password is incorrect'
+      )
+    }
+    const userInfo = {
+      _id: existUser._id,
+      email: existUser.email
+    }
+
+    const accessToken = await jwtProvider.generateToken(
+      userInfo,
+      env.ACCESS_TOKEN_SECRET_KEY,
+      env.ACCESS_TOKEN_LIFE
+    )
+
+    const refreshToken = await jwtProvider.generateToken(
+      userInfo,
+      env.REFRESH_TOKEN_SECRET_KEY,
+      env.REFRESH_TOKEN_LIFE
+    )
+
+    return {
+      accessToken,
+      refreshToken,
+      ...pickUser(existUser)
+    }
+  } catch (error) {
+    throw error
+  }
+}
+
 export const userService = {
-  createNew
+  createNew,
+  verifyAccount,
+  login
 }
