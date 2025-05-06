@@ -1,4 +1,5 @@
 import { StatusCodes } from 'http-status-codes'
+import { sample } from 'lodash'
 import { userService } from '~/services/userService'
 
 const createNew = async (req, res, next) => {
@@ -22,6 +23,21 @@ const verifyAccount = async (req, res, next) => {
 const login = async (req, res, next) => {
   try {
     const loginUser = await userService.login(req.body)
+
+    res.cookie('accessToken', loginUser.accessToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    })
+
+    res.cookie('refreshToken', loginUser.refreshToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    })
+
     res.status(StatusCodes.OK).json(loginUser)
   } catch (error) {
     next(error)

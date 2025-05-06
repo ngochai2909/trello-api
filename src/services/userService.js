@@ -63,7 +63,7 @@ const verifyAccount = async (reqBody) => {
     }
 
     await userModel.update(existUser._id, {
-      isVerified: true,
+      isActive: true,
       verifyToken: null
     })
 
