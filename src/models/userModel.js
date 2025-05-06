@@ -26,6 +26,7 @@ const USER_COLLECTION_SCHEMA = Joi.object({
   verifyToken: Joi.string(),
   createdAt: Joi.date().timestamp('javascript').default(Date.now),
   updatedAt: Joi.date().timestamp('javascript').default(null),
+
   _destroy: Joi.boolean().default(false)
 })
 
