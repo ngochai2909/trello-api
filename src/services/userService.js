@@ -98,15 +98,13 @@ const login = async (reqBody) => {
     const accessToken = await jwtProvider.generateToken(
       userInfo,
       env.ACCESS_TOKEN_SECRET_KEY,
-      // env.ACCESS_TOKEN_LIFE
-      5
+      env.ACCESS_TOKEN_LIFE
     )
 
     const refreshToken = await jwtProvider.generateToken(
       userInfo,
       env.REFRESH_TOKEN_SECRET_KEY,
-      // env.REFRESH_TOKEN_LIFE
-      15
+      env.REFRESH_TOKEN_LIFE
     )
 
     return {
@@ -137,8 +135,7 @@ const refreshToken = async (refreshToken) => {
     const accessToken = await jwtProvider.generateToken(
       userInfo,
       env.ACCESS_TOKEN_SECRET_KEY,
-      // env.ACCESS_TOKEN_LIFE
-      5
+      env.ACCESS_TOKEN_LIFE
     )
     return {
       accessToken
@@ -151,9 +148,53 @@ const refreshToken = async (refreshToken) => {
   }
 }
 
+const update = async (userId, reqBody) => {
+  // eslint-disable-next-line no-useless-catch
+  try {
+    const existUser = await userModel.findOneById(userId)
+    if (!existUser) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'User not found')
+    }
+
+    if (!existUser.isActive) {
+      throw new ApiError(StatusCodes.NOT_ACCEPTABLE, 'User not actived')
+    }
+
+    const updateData = { ...reqBody }
+
+    // Loại bỏ các trường password khỏi updateData nếu có
+    if (updateData.current_password) delete updateData.current_password
+    if (updateData.new_password) delete updateData.new_password
+
+    // Nếu có thay đổi mật khẩu
+    if (reqBody.current_password && reqBody.new_password) {
+      if (!bcrypt.compareSync(reqBody.current_password, existUser.password)) {
+        throw new ApiError(
+          StatusCodes.NOT_ACCEPTABLE,
+          'Current password is incorrect'
+        )
+      }
+
+      // Thêm mật khẩu mã hóa vào đối tượng cập nhật
+      updateData.password = bcrypt.hashSync(reqBody.new_password, 8)
+    }
+
+    // Thêm thời gian cập nhật
+    updateData.updatedAt = Date.now()
+
+    // Thực hiện cập nhật và đợi kết quả
+    const updatedUser = await userModel.update(userId, updateData)
+
+    return pickUser(updatedUser)
+  } catch (error) {
+    throw error
+  }
+}
+
 export const userService = {
   createNew,
   verifyAccount,
   login,
-  refreshToken
+  refreshToken,
+  update
 }

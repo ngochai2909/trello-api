@@ -77,11 +77,16 @@ const findOneByEmail = async (email) => {
 
 const update = async (userId, updateData) => {
   try {
+    console.log('userModel.update - userId:', userId)
+    console.log('userModel.update - updateData:', updateData)
+
     Object.keys(updateData).forEach((fieldName) => {
       if (INVALID_UPDATE_FIELDS.includes(fieldName)) {
         delete updateData[fieldName]
       }
     })
+
+    console.log('userModel.update - filtered updateData:', updateData)
 
     const result = await GET_DB()
       .collection(USER_COLLECTION_NAME)
@@ -93,8 +98,10 @@ const update = async (userId, updateData) => {
         }
       )
 
+    console.log('userModel.update - MongoDB result:', result)
     return result
   } catch (error) {
+    console.log('userModel.update - error:', error)
     throw new Error(error)
   }
 }
