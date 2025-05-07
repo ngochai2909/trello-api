@@ -1,6 +1,7 @@
 import { StatusCodes } from 'http-status-codes'
 import { sample } from 'lodash'
 import { userService } from '~/services/userService'
+import ApiError from '~/utils/ApiError'
 
 const createNew = async (req, res, next) => {
   try {
@@ -44,8 +45,40 @@ const login = async (req, res, next) => {
   }
 }
 
+const logout = (req, res, next) => {
+  try {
+    res.clearCookie('accessToken')
+    res.clearCookie('refreshToken')
+
+    res.status(StatusCodes.OK).json({
+      logout: true
+    })
+  } catch (error) {
+    next(error)
+  }
+}
+
+const refreshToken = async (req, res, next) => {
+  try {
+    const result = await userService.refreshToken(req.cookies?.refreshToken)
+
+    res.cookie('accessToken', result.accessToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    })
+
+    res.status(StatusCodes.OK).json(result)
+  } catch (error) {
+    next(new ApiError(StatusCodes.UNAUTHORIZED, 'Please sign in'))
+  }
+}
+
 export const userController = {
   createNew,
   verifyAccount,
-  login
+  login,
+  logout,
+  refreshToken
 }
