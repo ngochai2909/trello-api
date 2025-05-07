@@ -25,7 +25,7 @@ const isAuthorized = async (req, res, next) => {
   } catch (error) {
     console.log(error, 'authMiddleware')
 
-    if (error?.message?.include('jwt expired')) {
+    if (error?.message?.includes('jwt expired')) {
       next(new ApiError(StatusCodes.GONE, 'Token expired'))
       return
     }

@@ -98,13 +98,15 @@ const login = async (reqBody) => {
     const accessToken = await jwtProvider.generateToken(
       userInfo,
       env.ACCESS_TOKEN_SECRET_KEY,
-      env.ACCESS_TOKEN_LIFE
+      // env.ACCESS_TOKEN_LIFE
+      5
     )
 
     const refreshToken = await jwtProvider.generateToken(
       userInfo,
       env.REFRESH_TOKEN_SECRET_KEY,
-      env.REFRESH_TOKEN_LIFE
+      // env.REFRESH_TOKEN_LIFE
+      15
     )
 
     return {
@@ -117,8 +119,41 @@ const login = async (reqBody) => {
   }
 }
 
+const refreshToken = async (refreshToken) => {
+  // eslint-disable-next-line no-useless-catch
+  try {
+    if (!refreshToken) {
+      throw new ApiError(StatusCodes.UNAUTHORIZED, 'Refresh token not found')
+    }
+
+    const decoded = await jwtProvider.verifyToken(
+      refreshToken,
+      env.REFRESH_TOKEN_SECRET_KEY
+    )
+    const userInfo = {
+      _id: decoded._id,
+      email: decoded.email
+    }
+    const accessToken = await jwtProvider.generateToken(
+      userInfo,
+      env.ACCESS_TOKEN_SECRET_KEY,
+      // env.ACCESS_TOKEN_LIFE
+      5
+    )
+    return {
+      accessToken
+    }
+  } catch (error) {
+    if (error?.message?.includes('jwt expired')) {
+      throw new ApiError(StatusCodes.UNAUTHORIZED, 'Token expired')
+    }
+    throw error
+  }
+}
+
 export const userService = {
   createNew,
   verifyAccount,
-  login
+  login,
+  refreshToken
 }
