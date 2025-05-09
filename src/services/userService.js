@@ -8,6 +8,7 @@ import { WEBSITE_DOMAIN } from '~/utils/constants'
 import { BrevoProvider } from '~/providers/BrevoProvider'
 import { jwtProvider } from '~/providers/JwtProvider'
 import { env } from '~/config/environment'
+import { cloudinaryProvider } from '~/providers/cloudinaryProvider'
 
 const createNew = async (reqBody) => {
   // eslint-disable-next-line no-useless-catch
@@ -148,7 +149,7 @@ const refreshToken = async (refreshToken) => {
   }
 }
 
-const update = async (userId, reqBody) => {
+const update = async (userId, reqBody, userAvatar) => {
   // eslint-disable-next-line no-useless-catch
   try {
     const existUser = await userModel.findOneById(userId)
@@ -160,13 +161,8 @@ const update = async (userId, reqBody) => {
       throw new ApiError(StatusCodes.NOT_ACCEPTABLE, 'User not actived')
     }
 
-    const updateData = { ...reqBody }
+    let updatedUser = {}
 
-    // Loại bỏ các trường password khỏi updateData nếu có
-    if (updateData.current_password) delete updateData.current_password
-    if (updateData.new_password) delete updateData.new_password
-
-    // Nếu có thay đổi mật khẩu
     if (reqBody.current_password && reqBody.new_password) {
       if (!bcrypt.compareSync(reqBody.current_password, existUser.password)) {
         throw new ApiError(
@@ -174,16 +170,22 @@ const update = async (userId, reqBody) => {
           'Current password is incorrect'
         )
       }
+      updatedUser = await userModel.update(userId, {
+        password: bcrypt.hashSync(reqBody.new_password, 8)
+      })
+    } else if (userAvatar) {
+      const uploadResult = await cloudinaryProvider.streamUpload(
+        userAvatar.buffer,
+        'user-avatar'
+      )
 
-      // Thêm mật khẩu mã hóa vào đối tượng cập nhật
-      updateData.password = bcrypt.hashSync(reqBody.new_password, 8)
+      console.log('uploadResult: ', uploadResult)
+      updatedUser = await userModel.update(userId, {
+        avatar: uploadResult.secure_url
+      })
+    } else {
+      updatedUser = await userModel.update(existUser._id, reqBody)
     }
-
-    // Thêm thời gian cập nhật
-    updateData.updatedAt = Date.now()
-
-    // Thực hiện cập nhật và đợi kết quả
-    const updatedUser = await userModel.update(userId, updateData)
 
     return pickUser(updatedUser)
   } catch (error) {
