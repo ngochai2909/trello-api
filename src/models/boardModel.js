@@ -5,6 +5,7 @@ import { BOARD_TYPE } from '~/utils/constants'
 import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '~/utils/validators'
 import { columnModel } from './columnModel'
 import { cardModel } from './cardModel'
+import { pagingSkipValue } from '~/utils/algorithms'
 
 // Define Collection (name & schema)
 const BOARD_COLLECTION_NAME = 'boards'
@@ -15,6 +16,14 @@ const BOARD_COLLECTION_SCHEMA = Joi.object({
   type: Joi.string().valid(BOARD_TYPE.PUBLIC, BOARD_TYPE.PRIVATE).required(),
   // Lưu ý các item trong mảng columnOrderIds là ObjectId nên cần thêm pattern cho chuẩn nhé, (lúc quay video số 57 mình quên nhưng sang đầu video số 58 sẽ có nhắc lại về cái này.)
   columnOrderIds: Joi.array()
+    .items(Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE))
+    .default([]),
+
+  ownerIds: Joi.array()
+    .items(Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE))
+    .default([]),
+
+  memberIds: Joi.array()
     .items(Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE))
     .default([]),
 
@@ -161,6 +170,61 @@ const pullColumnIdToBoard = async (column) => {
   }
 }
 
+const getBoards = async (userId, page, itemsPerPage) => {
+  try {
+    const queryCondition = [
+      { _destroy: false },
+      {
+        $or: [
+          { ownerIds: { $all: [new ObjectId(userId)] } },
+          { memberIds: { $all: [new ObjectId(userId)] } }
+        ]
+      }
+    ]
+
+    const query = await GET_DB()
+      .collection(BOARD_COLLECTION_NAME)
+      .aggregate(
+        [
+          {
+            $match: {
+              $and: queryCondition
+            }
+          },
+
+          { $sort: { title: 1 } },
+          {
+            $facet: {
+              queryBoards: [
+                { $skip: pagingSkipValue(page, itemsPerPage) },
+                { $limit: itemsPerPage }
+              ],
+              queryTotalBoards: [{ $count: 'totalAllBoards' }]
+            }
+          }
+        ],
+        {
+          collation: {
+            locale: 'en'
+          }
+        }
+      )
+      .toArray()
+
+    console.log('query in board Model', query)
+
+    const response = query[0]
+
+    return {
+      boards: response.queryBoards || [],
+      totalBoards: response.queryTotalBoards[0]?.totalAllBoards || 0
+    }
+  } catch (error) {
+    console.error('Error in getBoards model:', error)
+    throw new Error(error)
+  }
+}
+
 //67eeca3e644244f0269745f1
 
 export const boardModel = {
@@ -171,5 +235,6 @@ export const boardModel = {
   getDetails,
   pushColumnIdToBoard,
   update,
-  pullColumnIdToBoard
+  pullColumnIdToBoard,
+  getBoards
 }
